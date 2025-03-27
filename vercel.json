@@ -1,0 +1,8 @@
+{
+    "build": {
+      "env": {
+        "EXPO_PUBLIC_USE_STATIC": "1"
+      }
+    },
+    "outputDirectory": "dist"
+  }

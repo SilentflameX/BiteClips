@@ -1,6 +1,9 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "target": "es6",
     "strict": true,
     "paths": {
       "@/*": [
@@ -13,5 +16,5 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-  ]
+, "app/AuthScreen.tjs", "app/HomePage.js"  ]
 }
