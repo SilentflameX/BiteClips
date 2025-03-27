@@ -4,12 +4,6 @@ import React from 'react';
 import { View, Text, Button, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router'; // import useRouter
 
-import { Amplify } from 'aws-amplify';
-import awsconfig from './aws-exports'; // Path to your aws-exports.js file
-
-Amplify.configure(awsconfig); // Initialize AWS Amplify with the configuration
-
-
 const HomePage = () => {
   const router = useRouter(); // get router
 

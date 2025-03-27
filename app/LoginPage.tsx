@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { signIn, SignInInput } from '@aws-amplify/auth';
+import { Auth } from "aws-amplify";
 
 const LoginScreen = () => {
   const router = useRouter(); // get router
@@ -20,10 +21,7 @@ const LoginScreen = () => {
     setLoading(true);
 
     try {
-      const user = await signIn({
-        username: email,
-        password: password
-      })
+      const user = await Auth.signIn(email, password);
       console.log('Logged in successfully', user);
       Alert.alert('Login Successful', `Welcome ${user}`);
     } catch (error) {
