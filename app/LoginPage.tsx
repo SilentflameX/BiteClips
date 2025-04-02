@@ -1,68 +1,124 @@
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
-import { signIn, SignInInput } from '@aws-amplify/auth';
-import { Auth } from "aws-amplify";
+// app/index.tsx
+//Not used!!
+import React,  { useState, useEffect, useMemo } from 'react';
+import { View, Text, Button, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { useRouter } from 'expo-router'; // import useRouter
+import express from 'express'
+import session from 'express-session';
+import { Issuer, generators, Client, TokenSet } from 'openid-client';
+import { useAuthRequest,  exchangeCodeAsync, revokeAsync, ResponseType, TokenResponse } from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+import { useAuth } from './AuthContext';
 
-const LoginScreen = () => {
+// Cognito Configuration
+const clientId = '5rc901f2m2a9gcvp5eaid4d3bh';
+const userPoolUrl =
+  'https://ap-southeast-2er4oci3go.auth.ap-southeast-2.amazoncognito.com';
+const redirectUri = 'http://localhost:8081/Callback';
+WebBrowser.maybeCompleteAuthSession(); // Auto close external page
+export var authTokens : string;
+
+const HomePage = () => {
   const router = useRouter(); // get router
-  
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [videoUrl, setVideoUrl] = useState("");
+  const { setAuthTokens } = useAuth();
 
-  // Placeholder for AWS Cognito Authentication
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Please enter both email and password.");
+const discoveryDocument = useMemo(() => ({
+    authorizationEndpoint: userPoolUrl + '/oauth2/authorize',
+    tokenEndpoint: userPoolUrl + '/oauth2/token',
+    revocationEndpoint: userPoolUrl + '/oauth2/revoke',
+  }), []);
+
+const [request, response, promptAsync] = useAuthRequest(
+{
+    clientId,
+    responseType: ResponseType.Code,
+    redirectUri,
+    usePKCE: true,
+},
+discoveryDocument
+);
+
+useEffect(() => {
+    const exchangeFn = async (exchangeTokenReq: any) => {
+      
+      try {
+        const exchangeTokenResponse = await exchangeCodeAsync(
+          exchangeTokenReq,
+          discoveryDocument
+        );
+        authTokens = exchangeTokenResponse.accessToken;
+        setAuthTokens(authTokens);
+        console.log(`Auth tokens Set! : ${authTokens}`);
+
+      //Now we move to next page
+      router.push('/VideoPlayer')
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    if (response) {
+      if (response.type == "error") {
+        console.log('Authentication error')
+        Alert.alert(
+          'Authentication error',
+          response.params.error_description || 'something went wrong'
+        );
+        return;
+      }
+      if (response.type === 'success') {
+        console.log('Auth Response Success')
+        exchangeFn({
+          clientId,
+          code: response.params.code,
+          redirectUri,
+          clientSecret: '1u9b6f77g7c96lsisb1prsjq1k8lefbduns23dmdebrpmk50mgn1',
+          extraParams: {
+            code_verifier: request.codeVerifier,
+          },
+        });
+      }
+    }
+  }, [discoveryDocument, request, response]);
+
+
+  const logout = async () => {
+    console.log(authTokens + discoveryDocument)
+
+    if (!authTokens || !discoveryDocument) {
       return;
     }
-
-    setLoading(true);
-
+    console.log("SignOut in progress")
+    
     try {
-      const user = await Auth.signIn(email, password);
-      console.log('Logged in successfully', user);
-      Alert.alert('Login Successful', `Welcome ${user}`);
+      const urlParams = new URLSearchParams({
+        client_id: clientId,
+        logout_uri: redirectUri,
+      });
+      var temp = `${userPoolUrl}/logout?${urlParams.toString()}`
+      console.log(temp)
+
+      // Open the logout page in the browser
+      await WebBrowser.openAuthSessionAsync(`${userPoolUrl}/logout?${urlParams.toString()}`);
+      
     } catch (error) {
-      console.error('Error signing in', error);
-      Alert.alert('Error', 'Failed to log in');
+      // Log the error but don't throw it since we want to continue with clearing tokens
+      console.error('Error during token revocation:', error);
     }
-  };
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#888"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#888"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? "Logging in..." : "Login"}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => router.push('/SignupPage')}>
-        <Text style={styles.forgotPassword}>Sign Up</Text>
-      </TouchableOpacity>
+      <Text style={styles.title}>BiteClips</Text>
+      <Text style={styles.buttonText}>Stock clips for inspiration</Text>
+        <TouchableOpacity style={styles.button} onPress={() => promptAsync()}>
+          <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
     </View>
   );
 };
+
+
 
 // 🔹 Styles
 const styles = StyleSheet.create({
@@ -74,7 +130,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 64,
     fontWeight: "bold",
     color: "#fff",
     marginBottom: 20,
@@ -89,13 +145,14 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   button: {
-    width: "100%",
+    width: "40%",
     height: 50,
     backgroundColor: "#3498db",
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 10,
-    marginTop: 10,
+    marginTop: 80,
+
   },
   buttonText: {
     color: "#fff",
@@ -108,4 +165,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen;
+export default HomePage;
