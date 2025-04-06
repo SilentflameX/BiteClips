@@ -15,7 +15,7 @@ import {jwtDecode} from 'jwt-decode';
 const clientId = '5rc901f2m2a9gcvp5eaid4d3bh';
 const userPoolUrl =
   'https://ap-southeast-2er4oci3go.auth.ap-southeast-2.amazoncognito.com';
-const redirectUri = 'http://localhost:8081/Callback';
+const redirectUri = 'https://biteclips.mooo.com/Callback';
 WebBrowser.maybeCompleteAuthSession(); // Auto close external page
 
 const HomePage = () => {
